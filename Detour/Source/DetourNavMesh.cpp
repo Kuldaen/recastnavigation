@@ -687,7 +687,7 @@ void dtNavMesh::closestPointOnPoly(dtPolyRef ref, const float* pos, float* close
 				v[k] = &tile->detailVerts[(pd->vertBase+(t[k]-poly->vertCount))*3];
 		}
 		float h;
-		if (dtClosestHeightPointTriangle(pos, v[0], v[1], v[2], h))
+		if (dtClosestHeightPointTriangle(closest, v[0], v[1], v[2], h))
 		{
 			closest[1] = h;
 			break;
@@ -943,7 +943,10 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	tile->flags = flags;
 
 	connectIntLinks(tile);
+
+	// Base off-mesh connections to their starting polygons and connect connections inside the tile.
 	baseOffMeshLinks(tile);
+	connectExtOffMeshLinks(tile, tile, -1);
 
 	// Create connections with neighbour tiles.
 	static const int MAX_NEIS = 32;
@@ -954,11 +957,11 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	nneis = getTilesAt(header->x, header->y, neis, MAX_NEIS);
 	for (int j = 0; j < nneis; ++j)
 	{
-		if (neis[j] != tile)
-		{
-			connectExtLinks(tile, neis[j], -1);
-			connectExtLinks(neis[j], tile, -1);
-		}
+		if (neis[j] == tile)
+			continue;
+	
+		connectExtLinks(tile, neis[j], -1);
+		connectExtLinks(neis[j], tile, -1);
 		connectExtOffMeshLinks(tile, neis[j], -1);
 		connectExtOffMeshLinks(neis[j], tile, -1);
 	}
